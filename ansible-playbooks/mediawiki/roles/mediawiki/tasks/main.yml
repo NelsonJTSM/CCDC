@@ -1,0 +1,90 @@
+- name: Set Main Server's default Ansible interpreter to Python3.
+  become: yes
+  delegate_to: 127.0.0.1
+  ansible.builtin.lineinfile:
+    path: /etc/ansible/ansible.cfg
+    insertafter: '^\[defaults\]'
+    line: "interpreter_python = /usr/bin/python3"
+
+- name: Install Python3 pip on Main Server.
+  become: yes
+  delegate_to: 127.0.0.1
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Install PyMySQL on Main Server.
+  delegate_to: 127.0.0.1
+  become: yes
+  pip:
+    name: "PyMySQL"
+    executable: /usr/bin/pip3
+
+- name: Set Main Server's default Ansible interpreter to Python3.
+  become: yes
+  ansible.builtin.lineinfile:
+    path: /etc/ansible/ansible.cfg
+    insertafter: '^\[defaults\]'
+    line: "interpreter_python = /usr/bin/python3"
+
+- name: Install Python3 pip on Remote Server.
+  become: yes
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Install PyMySQL on Remote Server.
+  become: yes
+  pip:
+    name: "PyMySQL"
+    executable: /usr/bin/pip3
+
+- name: Install LAMP stack
+  become: yes
+  apt:
+    name: "{{ lamp_packages }}"
+    state: present
+
+- name: Download MediaWiki
+  become: yes
+  get_url:
+    url: "https://releases.wikimedia.org/mediawiki/{{ mw_version }}/mediawiki-{{ mw_version }}.{{ mw_patch_version }}.tar.gz"
+    dest: "/root/mediawiki-{{ mw_version }}.{{ mw_patch_version }}.tar.gz"
+
+- name: Extract MediaWiki
+  become: yes
+  ansible.builtin.unarchive:
+    src: "/root/mediawiki-{{ mw_version }}.{{ mw_patch_version }}.tar.gz"
+    dest: /root/
+    remote_src: yes
+
+- name: Move MediaWiki to /var/lib
+  become: yes
+  command:
+    cmd: "mv /root/mediawiki-{{ mw_version }}.{{ mw_patch_version }} /var/lib/mediawiki"
+    creates: "/var/lib/mediawiki"
+
+- name: Create symbolic link for MediaWiki
+  become: yes
+  file:
+    src: "/var/lib/mediawiki"
+    dest: "/var/www/html/mediawiki"
+    state: link
+    remote_src: yes
+
+- name: Create MediaWiki database in MySQL
+  become: yes
+  community.mysql.mysql_db:
+    name: "{{ mw_db_name }}"
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Create MediaWiki user in MySQL and grant permission to MediaWiki database.
+  become: yes
+  community.mysql.mysql_user:
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: "{{ mw_db_user }}"
+    password: "{{ mw_db_password }}"
+    priv:
+      "{{ mw_db_name }}.*:ALL,GRANT"
