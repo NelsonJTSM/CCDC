@@ -8,6 +8,8 @@ Only tested using Ubuntu 18.04 for host and remote host.
 
 For authentication, we use an ssh key located at ```~/terraform_key```.
 
+Default credentials for the MediaWiki can be found and changed [here](./roles/mediawiki/defaults/main.yml)
+
 ## Pre-Installation
 
 ### Install Ansible
@@ -33,6 +35,8 @@ $ sudo nano /etc/ansible/hosts
 As an example, we will use ```192.168.151.2``` as the IP of the remote host.
 
 ### Install Ansible's MySQL plugin
+
+On the Main Server:
 
 ```
 $ ansible-galaxy collection install community.mysql
